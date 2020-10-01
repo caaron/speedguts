@@ -1,0 +1,29 @@
+{
+	"window": {
+		"size": [570, 460],
+		"title": "My Game",
+		"background_color": [0, 153, 0]
+	},
+	"deck": {
+		"position": [10, 50],
+		"offset": [0.2, 0]
+	},
+	"cards": {
+		"position": [10, 180]
+	},
+	"card": {
+		"size": [65, 85],
+		"front_sprite_path": "img/cards/",
+		"back_sprite_file": "img/back-side.png",
+		"move_speed": 80
+	},
+	    "gui": {
+        "restart_button": [10, 425, 50, 25],
+        "higher_button": [500, 180, 50, 40],
+        "lower_button": [500, 225, 50, 40],
+        "win_label": [150, 240],
+		"win_text_size": 30,
+			"num_cards": 5
+    }
+
+}
