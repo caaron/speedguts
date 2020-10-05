@@ -6,10 +6,15 @@
 	},
 	"deck": {
 		"position": [10, 50],
-		"offset": [0.2, 0]
+		"offset": [0.7, 0]
 	},
-	"cards": {
-		"position": [10, 180]
+	"upcards": {
+		"position": [130, 50],
+		"offset": [0.7, 0]
+	},
+	"discards": {
+		"position": [220, 50],
+		"offset": [0.7, 0]
 	},
 	"card": {
 		"size": [65, 85],
@@ -20,10 +25,12 @@
 	    "gui": {
         "restart_button": [10, 425, 50, 25],
         "higher_button": [500, 180, 50, 40],
-        "lower_button": [500, 225, 50, 40],
+        "bank_button": [500, 130, 50, 40],
+        "lower_button": [500, 245, 50, 40],
         "win_label": [150, 240],
 		"win_text_size": 30,
-			"num_cards": 5
+		"num_cards": 25,
+		"count_label": [250,20]
     }
 
 }
