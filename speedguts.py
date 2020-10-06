@@ -171,7 +171,9 @@ class MyGameController(controller.Controller):
         """
         self.upcards.move_all_cards(self.deck)
         self.discards.move_all_cards(self.deck)
+        self.show_count()
         self.start_game()
+
 
     def execute_game(self):
         """ This method is called in an endless loop started by GameApp.execute().
@@ -269,8 +271,12 @@ class MyGameController(controller.Controller):
 
     def bank_clicked(self):
         self.bank_index = self.current_card_index
-        # set a timer to disable buttons
-        self.show_bad_card_then_reset()
+        self.upcards.move_all_cards(self.discards)
+        new_card = self.deck.pop_top_card()
+        new_card.flip()
+        self.upcards.add_card(new_card)  # put on new card
+        self.show_count()
+
 
 def main():
     """ Entry point of the application. """
