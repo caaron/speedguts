@@ -3,6 +3,7 @@ import pygame
 # Import other modules from pygame_cards if needed.
 from pygame_cards import game_app, controller, enums, card_holder, deck, card, gui
 from random import shuffle
+from threading import Timer
 
 class position:
     def __init__(self,x=0,y=0):
@@ -99,6 +100,8 @@ class MyGameController(controller.Controller):
         self.bank_index = 0
         self.add_rendered_object((self.deck, None))
         self.add_rendered_object((self.upcards, self.discards))
+        #self.timer = Timer(2, self.timer_expire)
+        self.bad_pic = pygame.image.load('wrong.gif')
 
         # All game objects should be added to self objects list
         #  with add_object method in order to be rendered.
@@ -113,9 +116,14 @@ class MyGameController(controller.Controller):
         self.gui_interface.show_button(self.settings_json["gui"]["lower_button"],
                                        self.lower_clicked, "Lower")
 
+        self.count_label = self.gui_interface.show_label(self.settings_json["gui"]["count_label"], "Count:0", timeout=0)
+        self.bank_count_label = self.gui_interface.show_label(self.settings_json["gui"]["bank_count_label"], "Bank:0", timeout=0)
+
+
         #self.gui_interface.show_label(self.settings_json["gui"]["count_label"], "Count:0")
         self.show_count()
         self.state = State.INIT
+        self.timeout = 2
 
 
     def start_game(self):
@@ -133,8 +141,12 @@ class MyGameController(controller.Controller):
         self.upcards.add_card(card_)
 
     def show_count(self):
-        tmp = "Count:%i" % (self.current_card_index)
-        self.gui_interface.show_label(self.settings_json["gui"]["count_label"], tmp, timeout=0)
+        tmp = "Count:%i" % (len(self.upcards.cards))
+        #self.gui_interface.show_label(self.settings_json["gui"]["count_label"], tmp, timeout=1)
+        self.count_label.text = tmp
+        tmp = "Bank:%i" % (len(self.discards.cards))
+        #self.gui_interface.show_label(self.settings_json["gui"]["bank_count_label"], tmp, timeout=1)
+        self.bank_count_label.text = tmp
 
     def process_mouse_event(self, pos, down, double_click):
         """ Put code that handles mouse events here.
@@ -185,22 +197,35 @@ class MyGameController(controller.Controller):
         del self.tmpdeck
 
     def disable_buttons(self):
-        pass
+        self.button_timer = Timer(self.timeout, self.enable_buttons)
+        self.button_timer.start()
 
     def enable_buttons(self):
         pass
 
     def start_timer(self, ms=500):
         #start timer, not event driver, must poll
-        pass
+        self.timer = Timer(self.timeout, self.timer_expire)
+        self.wrong_label = self.gui_interface.show_label(self.settings_json["gui"]["wrong_label"], "WRONG!", timeout=2, text_size=30)
+        self.timer.start()
+
+    def timer_expire(self):
+        self.cb()
+        del self.timer
+        self.show_count()
 
     def show_bad_card_then_reset(self):
         # start a timer to show the bad card, timeout, then move
         # all cards from upcards back to deck
         # need state machine that is updated in execute_game, calls en/disable buttons
-        self.move_all_but_bottom_card(self.upcards,self.deck)
-        pass
-    
+        self.cb = self.move_all_but_bottom_upcard_to_deck
+        #self.move_all_but_bottom_card(self.upcards,self.deck)
+
+        self.start_timer()
+
+    def move_all_but_bottom_upcard_to_deck(self):
+        self.move_all_but_bottom_card(self.upcards, self.deck)
+
     def move_all_but_bottom_card(self,src,dst,doShuffle=True):
         while (len(src.cards) > 1):
             _card = src.pop_top_card()
@@ -208,7 +233,11 @@ class MyGameController(controller.Controller):
             self.tmpdeck.add_card(_card)
         if doShuffle == True:
             shuffle(self.tmpdeck.cards)
-        self.tmpdeck.move_all_cards(dst)
+        #self.tmpdeck.move_all_cards(dst)   # only moves cards to top of pile
+        while (self.tmpdeck.cards):
+            _card = self.tmpdeck.pop_top_card()
+            self.deck.add_card(_card,on_top=False)
+
 
     def higher_clicked(self):
         pass

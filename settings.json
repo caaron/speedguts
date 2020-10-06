@@ -30,7 +30,9 @@
         "win_label": [150, 240],
 		"win_text_size": 30,
 		"num_cards": 25,
-		"count_label": [250,20]
+		"count_label": [130,20],
+		"bank_count_label": [220,20],
+		"wrong_label": [130,40]
     }
 
 }
