@@ -118,6 +118,7 @@ class MyGameController(controller.Controller):
 
         self.count_label = self.gui_interface.show_label(self.settings_json["gui"]["count_label"], "Count:0", timeout=0)
         self.bank_count_label = self.gui_interface.show_label(self.settings_json["gui"]["bank_count_label"], "Bank:0", timeout=0)
+        self.status_label = self.gui_interface.show_label(self.settings_json["gui"]["status_label"], "Haijime!", timeout=0)
 
 
         #self.gui_interface.show_label(self.settings_json["gui"]["count_label"], "Count:0")
@@ -139,6 +140,8 @@ class MyGameController(controller.Controller):
         card_ = self.deck.pop_top_card()
         card_.flip()
         self.upcards.add_card(card_)
+        self.status_label.text = "Haijime!"
+        self.status_label.timeout=0
 
     def show_count(self):
         tmp = "Count:%i" % (len(self.upcards.cards))
@@ -147,6 +150,9 @@ class MyGameController(controller.Controller):
         tmp = "Bank:%i" % (len(self.discards.cards))
         #self.gui_interface.show_label(self.settings_json["gui"]["bank_count_label"], tmp, timeout=1)
         self.bank_count_label.text = tmp
+        tmp = "Cards left:%i" % (self.nCards - len(self.discards.cards))
+        self.status_label.text = tmp
+        self.status_label.timeout=0
 
     def process_mouse_event(self, pos, down, double_click):
         """ Put code that handles mouse events here.
@@ -270,7 +276,13 @@ class MyGameController(controller.Controller):
             self.show_count()
 
     def bank_clicked(self):
-        self.bank_index = self.current_card_index
+        if len(self.upcards.cards) > 1:
+            self.cb = self.finish_bank
+            self.timer = Timer(self.timeout, self.timer_expire)
+            self.status_label.text = "Bank it!"
+            self.timer.start()
+
+    def finish_bank(self):
         self.upcards.move_all_cards(self.discards)
         new_card = self.deck.pop_top_card()
         new_card.flip()
