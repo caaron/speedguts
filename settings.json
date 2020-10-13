@@ -12,7 +12,7 @@
 		"position": [130, 50],
 		"offset": [0.7, 0]
 	},
-	"discards": {
+	"banked_cards": {
 		"position": [220, 50],
 		"offset": [0.7, 0]
 	},
@@ -31,6 +31,7 @@
 		"win_text_size": 30,
 		"num_cards": 25,
 		"status_label": [300,55],
+		"timer_label": [400,65],
 		"count_label": [130,20],
 		"bank_count_label": [220,20],
 		"wrong_label": [130,55]

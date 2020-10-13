@@ -4,6 +4,7 @@ import pygame
 from pygame_cards import game_app, controller, enums, card_holder, deck, card, gui
 from random import shuffle
 from threading import Timer
+import time
 
 class position:
     def __init__(self,x=0,y=0):
@@ -19,6 +20,7 @@ class slot:
 class State:
     """ Enums for state machine """
     INIT = 0
+    WAIT_TO_START = 2
     START = 3
     PLAY = 4
     TIMER_ON = 5
@@ -80,7 +82,7 @@ class MyGameController(controller.Controller):
         """ Create permanent game objects (deck of cards, players etc.) and
         GUI elements in this method. This method is executed during creation of GameApp object.
         """
-
+        self.state = State.INIT
         deck_pos = self.settings_json["deck"]["position"]
         deck_offset = self.settings_json["deck"]["offset"]
         self.nCards = self.settings_json["gui"]["num_cards"]
@@ -90,16 +92,16 @@ class MyGameController(controller.Controller):
         upcards_offset = self.settings_json["upcards"]["offset"]
         self.upcards = card_holder.CardsHolder(pos=upcards_pos, offset=upcards_offset)
 
-        discards_pos = self.settings_json["discards"]["position"]
-        discards_offset = self.settings_json["discards"]["offset"]
-        self.discards = Discards(pos=discards_pos, offset=discards_offset)
+        banked_cards_pos = self.settings_json["banked_cards"]["position"]
+        banked_cards_offset = self.settings_json["banked_cards"]["offset"]
+        self.banked_cards = Discards(pos=banked_cards_pos, offset=banked_cards_offset)
 
         self.tmpdeck = card_holder.CardsHolder(pos=(0,0))
 
         self.current_card_index = 0
         self.bank_index = 0
         self.add_rendered_object((self.deck, None))
-        self.add_rendered_object((self.upcards, self.discards))
+        self.add_rendered_object((self.upcards, self.banked_cards))
         #self.timer = Timer(2, self.timer_expire)
         self.bad_pic = pygame.image.load('wrong.gif')
 
@@ -108,7 +110,7 @@ class MyGameController(controller.Controller):
 
         # Create Restart button
         self.gui_interface.show_button(self.settings_json["gui"]["restart_button"],
-                                       self.restart_game, "Restart")
+                                       self.restart_game, "Start")
         self.gui_interface.show_button(self.settings_json["gui"]["higher_button"],
                                        self.higher_clicked, "Higher")
         self.gui_interface.show_button(self.settings_json["gui"]["bank_button"],
@@ -118,13 +120,15 @@ class MyGameController(controller.Controller):
 
         self.count_label = self.gui_interface.show_label(self.settings_json["gui"]["count_label"], "Count:0", timeout=0)
         self.bank_count_label = self.gui_interface.show_label(self.settings_json["gui"]["bank_count_label"], "Bank:0", timeout=0)
-        self.status_label = self.gui_interface.show_label(self.settings_json["gui"]["status_label"], "Haijime!", timeout=0)
+        self.status_label = self.gui_interface.show_label(self.settings_json["gui"]["status_label"], "Press start", timeout=0)
+        self.timer_label = self.gui_interface.show_timer_label(self.settings_json["gui"]["timer_label"], "0.0", text_size=25, timeout=0)
 
 
         #self.gui_interface.show_label(self.settings_json["gui"]["count_label"], "Count:0")
         self.show_count()
-        self.state = State.INIT
+        self.state = State.WAIT_TO_START
         self.timeout = 2
+        self.clock = pygame.time.Clock()
 
 
     def start_game(self):
@@ -137,20 +141,23 @@ class MyGameController(controller.Controller):
         self.current_card_index = 1
         self.bank_index = 0
         self.deck.shuffle()
-        card_ = self.deck.pop_top_card()
-        card_.flip()
-        self.upcards.add_card(card_)
-        self.status_label.text = "Haijime!"
+        #card_ = self.deck.pop_top_card()
+        #card_.flip()
+        #self.upcards.add_card(card_)
+        self.timer_label.reset()
+        self.status_label.text = "Press start"
+        self.state = State.WAIT_TO_START
         self.status_label.timeout=0
+
 
     def show_count(self):
         tmp = "Count:%i" % (len(self.upcards.cards))
         #self.gui_interface.show_label(self.settings_json["gui"]["count_label"], tmp, timeout=1)
         self.count_label.text = tmp
-        tmp = "Bank:%i" % (len(self.discards.cards))
+        tmp = "Bank:%i" % (len(self.banked_cards.cards))
         #self.gui_interface.show_label(self.settings_json["gui"]["bank_count_label"], tmp, timeout=1)
         self.bank_count_label.text = tmp
-        tmp = "Cards left:%i" % (self.nCards - len(self.discards.cards))
+        tmp = "Cards left:%i" % (self.nCards - len(self.banked_cards.cards))
         self.status_label.text = tmp
         self.status_label.timeout=0
 
@@ -175,10 +182,20 @@ class MyGameController(controller.Controller):
             start_game() method can be called here to avoid code duplication. For example,
             This method can be used after game over or as a handler of "Restart" button.
         """
-        self.upcards.move_all_cards(self.deck)
-        self.discards.move_all_cards(self.deck)
-        self.show_count()
-        self.start_game()
+        if self.state == State.WAIT_TO_START:
+            self.status_label.text = "Haijime!"
+            self.state = State.START
+
+            self.startTime = time.time()
+            self.timer_label.begin()
+            card_ = self.deck.pop_top_card()
+            card_.flip()
+            self.upcards.add_card(card_)
+        else:
+            self.upcards.move_all_cards(self.deck)
+            self.banked_cards.move_all_cards(self.deck)
+            self.show_count()
+            self.start_game()
 
 
     def execute_game(self):
@@ -201,7 +218,7 @@ class MyGameController(controller.Controller):
         """
         del self.deck
         del self.upcards
-        del self.discards
+        del self.banked_cards
         del self.tmpdeck
 
     def disable_buttons(self):
@@ -249,7 +266,7 @@ class MyGameController(controller.Controller):
 
     def higher_clicked(self):
         pass
-        if self.current_card_index < self.nCards:
+        if len(self.banked_cards.cards) < self.nCards:
             new_card = self.deck.pop_top_card()
             new_card.flip()
             up_card = self.upcards.pop_top_card()
@@ -263,7 +280,7 @@ class MyGameController(controller.Controller):
 
     def lower_clicked(self):
         pass
-        if self.current_card_index < self.nCards:
+        if len(self.banked_cards.cards) < self.nCards:
             new_card = self.deck.pop_top_card()
             new_card.flip()
             up_card = self.upcards.pop_top_card()
@@ -283,11 +300,18 @@ class MyGameController(controller.Controller):
             self.timer.start()
 
     def finish_bank(self):
-        self.upcards.move_all_cards(self.discards)
+        self.upcards.move_all_cards(self.banked_cards)
         new_card = self.deck.pop_top_card()
         new_card.flip()
         self.upcards.add_card(new_card)  # put on new card
         self.show_count()
+        if len(self.banked_cards.cards) >= self.nCards:
+            self.state = State.END
+            #self.timer.stop()
+            self.timer_label.stop()
+
+    def render(self):
+        controller.Controller.render()
 
 
 def main():
